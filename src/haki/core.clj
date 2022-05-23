@@ -23,16 +23,6 @@
 
 (def board (atom (insert-2 (partition 4 (repeat 16 0)))))
 
-;; how to improve it?
-(defn draw-spaces
-  [n]
-  (let [len (count (str n))]
-    (case len
-      1 (str " 0" n " ")
-      2 (str " " n " ")
-      3 (str " " n "")
-      4 (str "" n ""))))
-
 (defn repeat-str
   [s n]
   (apply str (repeat n s)))
