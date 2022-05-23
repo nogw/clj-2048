@@ -2,23 +2,26 @@
   (:require [lanterna.screen :as s])
   (:gen-class))
 
-(defn get-time []
-  (java.lang.System/nanoTime))
-
 (def last-loop-time (atom 0))
-(def score (atom 0))
 (def target-fps (atom 20))
-(defn optimal-time [] (double (/ 1000000000 @target-fps)))
+(def running (atom true))
+(def score (atom 0))
 (def fps (atom 0))
 (def now (atom 0))
-(def running (atom true))
 (def scr (atom nil))
+(def win (atom false))
+
+(defn optimal-time []
+  (double (/ 1000000000 @target-fps)))
+
+(defn get-time []
+  (java.lang.System/nanoTime))
 
 (defn insert-2 [board]
   (let [flat (into [] (flatten board))
         zero-indices (seq (keep-indexed #(when (zero? %2) %1) flat))]
     (cond
-      (some #{2048} flat) (reset! running false)
+      (some #{2048} flat) (do (reset! running false) (reset! win true))
       (empty? zero-indices) (reset! running false)
       :else (partition 4 (assoc flat (rand-nth zero-indices) 2)))))
 
@@ -28,42 +31,6 @@
   (->> (flatten @board)
        (filter (fn [x] (> x 2)))
        (reduce +)))
-
-(defn repeat-str
-  [s n]
-  (apply str (repeat n s)))
-
-(defn spaces
-  [n]
-  (repeat-str \space n))
-
-(defn center-str [s len]
-  (let [slen (count (str s))
-        lpad (int (/ (- len slen) 2))
-        rpad (- len slen lpad)]
-    (str (spaces lpad) s (spaces rpad))))
-
-(defn get-color [n]
-  (case n
-    (0) {:fg :black :bg :white :styles #{:reverse}}
-    (2 4) {:fg :black :bg :white :styles #{:bold}}
-    (8 16 32) {:fg :black :bg :red :styles #{:bold}}
-    (64 128 256 512 1024 2048) {:fg :black :bg :yellow :styles #{:bold}}))
-
-(defn draw-square [col row text]
-  (let [color (get-color text)]
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 1 1 (* 3 row)) "┌────┐" color)
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 1 (* 3 row)) (str "╎" (center-str text 4) "╎") color)
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 3 1 (* 3 row)) "└────┘" color)))
-
-(defn draw-columns-and-rows [l]
-  (loop [x (- (count l) 1)]
-    (when (>= x 0)
-      (loop [y (- (count (nth l x)) 1)]
-        (when (>= y 0)
-          (draw-square (* 2 y) x (nth (nth l x) y))
-          (recur (- y 1))))
-      (recur (- x 1)))))
 
 (defn rotate [board]
   (map
@@ -108,6 +75,42 @@
         (or (= \s user-input) (= :down user-input)) (make-movement 1)))
     (Thread/sleep 10)))
 
+(defn repeat-str
+  [s n]
+  (apply str (repeat n s)))
+
+(defn spaces
+  [n]
+  (repeat-str \space n))
+
+(defn center-str [s len]
+  (let [slen (count (str s))
+        lpad (int (/ (- len slen) 2))
+        rpad (- len slen lpad)]
+    (str (spaces lpad) s (spaces rpad))))
+
+(defn get-color [n]
+  (case n
+    (0) {:fg :black :bg :white :styles #{:reverse}}
+    (2 4) {:fg :black :bg :white :styles #{:bold}}
+    (8 16 32) {:fg :black :bg :red :styles #{:bold}}
+    (64 128 256 512 1024 2048) {:fg :black :bg :yellow :styles #{:bold}}))
+
+(defn draw-square [col row text]
+  (let [color (get-color text)]
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 1 1 (* 3 row)) "┌────┐" color)
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 1 (* 3 row)) (str "╎" (center-str text 4) "╎") color)
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 3 1 (* 3 row)) "└────┘" color)))
+
+(defn draw-columns-and-rows [l]
+  (loop [x (- (count l) 1)]
+    (when (>= x 0)
+      (loop [y (- (count (nth l x)) 1)]
+        (when (>= y 0)
+          (draw-square (* 2 y) x (nth (nth l x) y))
+          (recur (- y 1))))
+      (recur (- x 1)))))
+
 (defn draw []
   (s/put-string @scr 1 0 (str "SCORE: " @score) {:styles #{:bold}})
   (draw-columns-and-rows @board))
@@ -131,4 +134,8 @@
 
   (game-loop)
   (reset! running false)
-  (s/stop @scr))
+  (s/stop @scr)
+  
+  (if @win 
+    (println "you win!!") 
+    (println (str "game-over, best score: " @score))))
