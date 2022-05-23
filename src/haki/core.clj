@@ -33,6 +33,20 @@
       3 (str " " n "")
       4 (str "" n ""))))
 
+(defn repeat-str
+  [s n]
+  (apply str (repeat n s)))
+
+(defn spaces
+  [n]
+  (repeat-str \space n))
+
+(defn center-str [s len]
+  (let [slen (count (str s))
+        lpad (int (/ (- len slen) 2))
+        rpad (- len slen lpad)]
+    (str (spaces lpad) s (spaces rpad))))
+
 (defn get-color [n]
   (case n
     (0) {:fg :black :bg :white :styles #{:reverse}}
@@ -43,7 +57,7 @@
 (defn draw-square [col row text]
   (let [color (get-color text)]
     (s/put-string @scr (+ 1 (* 3 col)) (+ 1 (* 3 row)) "┌────┐" color)
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 (* 3 row)) (str "╎" (draw-spaces text) "╎") color)
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 (* 3 row)) (str "╎" (center-str text 4) "╎") color)
     (s/put-string @scr (+ 1 (* 3 col)) (+ 3 (* 3 row)) "└────┘" color)))
 
 (defn draw-columns-and-rows [l]
