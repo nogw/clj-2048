@@ -6,6 +6,7 @@
   (java.lang.System/nanoTime))
 
 (def last-loop-time (atom 0))
+(def score (atom 0))
 (def target-fps (atom 20))
 (defn optimal-time [] (double (/ 1000000000 @target-fps)))
 (def fps (atom 0))
@@ -22,6 +23,11 @@
       :else (partition 4 (assoc flat (rand-nth zero-indices) 2)))))
 
 (def board (atom (insert-2 (partition 4 (repeat 16 0)))))
+
+(defn update-score []
+  (->> (flatten @board)
+       (filter (fn [x] (> x 2)))
+       (reduce +)))
 
 (defn repeat-str
   [s n]
@@ -46,9 +52,9 @@
 
 (defn draw-square [col row text]
   (let [color (get-color text)]
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 1 (* 3 row)) "┌────┐" color)
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 (* 3 row)) (str "╎" (center-str text 4) "╎") color)
-    (s/put-string @scr (+ 1 (* 3 col)) (+ 3 (* 3 row)) "└────┘" color)))
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 1 1 (* 3 row)) "┌────┐" color)
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 2 1 (* 3 row)) (str "╎" (center-str text 4) "╎") color)
+    (s/put-string @scr (+ 1 (* 3 col)) (+ 3 1 (* 3 row)) "└────┘" color)))
 
 (defn draw-columns-and-rows [l]
   (loop [x (- (count l) 1)]
@@ -103,6 +109,7 @@
     (Thread/sleep 10)))
 
 (defn draw []
+  (s/put-string @scr 1 0 (str "SCORE: " @score) {:styles #{:bold}})
   (draw-columns-and-rows @board))
 
 (defn game-loop []
@@ -112,6 +119,7 @@
     (reset! now (get-time))
     (reset! last-loop-time @now)
     (reset! fps (inc @fps))
+    (reset! score (update-score))
     (draw)
     (s/redraw @scr)
     (Thread/sleep (max 0 (double (/ (+ (optimal-time) (- @last-loop-time (get-time))) 1000000))))))
